@@ -58,19 +58,20 @@ class CalculatorScreen extends StatelessWidget {
             const Text('Divisiones:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ..._buildDivisionList(furnitureProvider, furniture),
             ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => DivisionSetupScreen(
-                      furnitureHeight: furniture.height,
-                      furnitureDepth: furniture.depth,
-                    ),
-                  ),
-                );
-              },
-              child: const Text('Configurar Divisiones'),
-            ),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DivisionSetupScreen(
+          furnitureHeight: furniture.height,
+          furnitureDepth: furniture.depth,
+          furnitureWidth: furniture.width,
+        ),
+      ),
+    );
+  },
+  child: const Text('Configurar Áreas'),
+),
             
             const Divider(thickness: 2),
             const Text('Resultados:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),

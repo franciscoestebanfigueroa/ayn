@@ -6,10 +6,12 @@ import '../models/furniture_model.dart';
 class DivisionSetupScreen extends StatefulWidget {
   final double furnitureHeight;
   final double furnitureDepth;
+  final double furnitureWidth;
 
   const DivisionSetupScreen({
     required this.furnitureHeight,
     required this.furnitureDepth,
+    required this.furnitureWidth,
     Key? key,
   }) : super(key: key);
 
@@ -18,13 +20,13 @@ class DivisionSetupScreen extends StatefulWidget {
 }
 
 class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
-  int _divisionCount = 1;
-  final List<Map<String, dynamic>> _divisions = [];
+  int _divisionCount = 0; // 0 significa área única sin divisiones
+  final List<Map<String, dynamic>> _areas = [];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Configurar Divisiones')),
+      appBar: AppBar(title: const Text('Configurar Áreas')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -36,11 +38,11 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
                 IconButton(
                   icon: const Icon(Icons.remove),
                   onPressed: () {
-                    if (_divisionCount > 1) {
+                    if (_divisionCount > 0) {
                       setState(() {
                         _divisionCount--;
-                        if (_divisions.length > _divisionCount) {
-                          _divisions.removeLast();
+                        if (_areas.length > _divisionCount + 1) {
+                          _areas.removeLast();
                         }
                       });
                     }
@@ -50,7 +52,21 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
                 IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () {
-                    setState(() => _divisionCount++);
+                    setState(() {
+                      _divisionCount++;
+                      // Asegurar que tenemos suficientes áreas (divisiones + 1)
+                      while (_areas.length < _divisionCount + 1) {
+                        _areas.add({
+                          'width': _divisionCount == 0 
+                              ? widget.furnitureWidth 
+                              : widget.furnitureWidth / (_divisionCount + 1),
+                          'type': 'estante_sin_puerta',
+                          'drawers': 0,
+                          'shelves': 1,
+                          'drawerSpecs': [],
+                        });
+                      }
+                    });
                   },
                 ),
               ],
@@ -58,24 +74,24 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
             const SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
-                itemCount: _divisionCount,
+                itemCount: _divisionCount + 1, // Mostrar todas las áreas (divisiones + 1)
                 itemBuilder: (context, index) {
-                  if (index >= _divisions.length) {
-                    _divisions.add({
-                      'width': 0.0,
+                  if (index >= _areas.length) {
+                    _areas.add({
+                      'width': widget.furnitureWidth / (_divisionCount + 1),
                       'type': 'estante_sin_puerta',
                       'drawers': 0,
                       'shelves': 1,
                       'drawerSpecs': [],
                     });
                   }
-                  return _buildDivisionCard(index, _divisions[index]);
+                  return _buildAreaCard(index, _areas[index]);
                 },
               ),
             ),
             ElevatedButton(
-              onPressed: _saveDivisions,
-              child: const Text('Guardar Divisiones'),
+              onPressed: _saveAreas,
+              child: const Text('Guardar Configuración'),
             ),
           ],
         ),
@@ -83,7 +99,7 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
     );
   }
 
-  Widget _buildDivisionCard(int index, Map<String, dynamic> division) {
+  Widget _buildAreaCard(int index, Map<String, dynamic> area) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
@@ -91,7 +107,7 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('División ${index + 1}', 
+            Text('Área ${index + 1}', 
                 style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 10),
             TextField(
@@ -101,13 +117,14 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
                 border: OutlineInputBorder(),
               ),
               onChanged: (value) {
-                division['width'] = double.tryParse(value) ?? 0.0;
+                area['width'] = double.tryParse(value) ?? 0.0;
               },
+              controller: TextEditingController(text: area['width'].toStringAsFixed(2)),
             ),
             const SizedBox(height: 15),
-            const Text('Tipo de división:'),
+            const Text('Tipo de área:'),
             DropdownButtonFormField<String>(
-              value: division['type'],
+              value: area['type'],
               items: const [
                 DropdownMenuItem(value: 'estante_sin_puerta', child: Text('Estante sin puerta')),
                 DropdownMenuItem(value: 'estante_con_puerta', child: Text('Estante con puerta')),
@@ -115,12 +132,23 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
               ],
               onChanged: (value) {
                 setState(() {
-                  division['type'] = value;
+                  area['type'] = value;
+                  // Resetear valores cuando cambia el tipo
+                  if (value == 'cajonera') {
+                    area['shelves'] = 0;
+                    area['doors'] = 0;
+                  } else if (value == 'estante_con_puerta') {
+                    area['drawers'] = 0;
+                    area['doors'] = 1;
+                  } else {
+                    area['drawers'] = 0;
+                    area['doors'] = 0;
+                  }
                 });
               },
             ),
             const SizedBox(height: 15),
-            if (division['type'] == 'estante_sin_puerta' || division['type'] == 'estante_con_puerta')
+            if (area['type'] == 'estante_sin_puerta' || area['type'] == 'estante_con_puerta')
               TextField(
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
@@ -128,10 +156,11 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
                   border: OutlineInputBorder(),
                 ),
                 onChanged: (value) {
-                  division['shelves'] = int.tryParse(value) ?? 1;
+                  area['shelves'] = int.tryParse(value) ?? 1;
                 },
+                controller: TextEditingController(text: area['shelves'].toString()),
               ),
-            if (division['type'] == 'cajonera')
+            if (area['type'] == 'cajonera')
               Column(
                 children: [
                   const SizedBox(height: 10),
@@ -142,22 +171,30 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
                       IconButton(
                         icon: const Icon(Icons.remove),
                         onPressed: () {
-                          if (division['drawers'] > 0) {
-                            setState(() => division['drawers']--);
+                          if (area['drawers'] > 0) {
+                            setState(() {
+                              area['drawers']--;
+                              if (area['drawerSpecs'].length > area['drawers']) {
+                                area['drawerSpecs'].removeLast();
+                              }
+                            });
                           }
                         },
                       ),
-                      Text('${division['drawers']}'),
+                      Text('${area['drawers']}'),
                       IconButton(
                         icon: const Icon(Icons.add),
                         onPressed: () {
-                          setState(() => division['drawers']++);
+                          setState(() => area['drawers']++);
                         },
                       ),
                     ],
                   ),
-                  if (division['drawers'] > 0)
-                    ...List.generate(division['drawers'], (drawerIndex) {
+                  if (area['drawers'] > 0)
+                    ...List.generate(area['drawers'], (drawerIndex) {
+                      if (drawerIndex >= area['drawerSpecs'].length) {
+                        area['drawerSpecs'].add({'height': 20.0});
+                      }
                       return Padding(
                         padding: const EdgeInsets.only(top: 8.0),
                         child: TextField(
@@ -167,12 +204,10 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
                             border: const OutlineInputBorder(),
                           ),
                           onChanged: (value) {
-                            if (drawerIndex >= division['drawerSpecs'].length) {
-                              division['drawerSpecs'].add({'height': double.tryParse(value) ?? 20.0});
-                            } else {
-                              division['drawerSpecs'][drawerIndex]['height'] = double.tryParse(value) ?? 20.0;
-                            }
+                            area['drawerSpecs'][drawerIndex]['height'] = double.tryParse(value) ?? 20.0;
                           },
+                          controller: TextEditingController(
+                            text: area['drawerSpecs'][drawerIndex]['height'].toStringAsFixed(2)),
                         ),
                       );
                     }),
@@ -184,29 +219,41 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
     );
   }
 
-  void _saveDivisions() {
+  void _saveAreas() {
     final provider = Provider.of<FurnitureProvider>(context, listen: false);
     
     // Validar anchos
-    for (var division in _divisions) {
-      if (division['width'] <= 0) {
+    double totalWidth = 0;
+    for (var area in _areas) {
+      if (area['width'] <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ingrese un ancho válido para todas las divisiones')),
+          const SnackBar(content: Text('Ingrese un ancho válido para todas las áreas')),
         );
         return;
       }
+      totalWidth += area['width'];
     }
 
-    final divisions = _divisions.map((div) {
+    // Verificar que la suma de anchos coincida con el ancho del mueble
+    if ((totalWidth - widget.furnitureWidth).abs() > 0.1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('La suma de anchos (${totalWidth.toStringAsFixed(2)} cm) no coincide con el ancho del mueble (${widget.furnitureWidth} cm)')),
+      );
+      return;
+    }
+
+    final divisions = _areas.map((area) {
       return Division(
-        name: 'División',
-        width: div['width'],
+        name: 'Área',
+        width: area['width'],
         height: widget.furnitureHeight,
         depth: widget.furnitureDepth,
-        shelves: div['type'].contains('estante') ? (div['shelves'] ?? 1) : 0,
-        doors: div['type'] == 'estante_con_puerta' ? 1 : 0,
-        drawers: div['type'] == 'cajonera' ? (div['drawers'] ?? 0) : 0,
-        drawerSpecs: div['type'] == 'cajonera' ? (div['drawerSpecs'] ?? []) : [],
+        shelves: area['type'].contains('estante') ? (area['shelves'] ?? 1) : 0,
+        doors: area['type'] == 'estante_con_puerta' ? 1 : 0,
+        drawers: area['type'] == 'cajonera' ? (area['drawers'] ?? 0) : 0,
+        drawerSpecs: area['type'] == 'cajonera' 
+            ? List<Map<String, dynamic>>.from(area['drawerSpecs'] ?? []) 
+            : [],
       );
     }).toList();
 
