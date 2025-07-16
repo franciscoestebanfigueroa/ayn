@@ -50,7 +50,7 @@ void updateFurnitureWithDrawers(List<Map<String, dynamic>> drawerSpecs) {
   );
   notifyListeners();
 }
-Map<String, dynamic> calculateCosts(Config config) {
+ Map<String, dynamic> calculateCosts(Config config) {
   double totalArea18mm = 0;
   double totalArea5mm = 0;
   int totalHinges = 0;
@@ -63,10 +63,21 @@ Map<String, dynamic> calculateCosts(Config config) {
   totalArea18mm += _furniture.width * _furniture.depth; // Piso
   totalArea18mm += _furniture.width * _furniture.depth; // Techo
 
-  // Calcular separaciones (divisiones verticales)
-  if (_furniture.divisions.length > 1) {
-    int numberOfSeparations = _furniture.divisions.length - 1;
-    totalArea18mm += numberOfSeparations * _furniture.height * _furniture.depth;
+  // Determinar si es mueble vertical (divisiones horizontales)
+  bool isVertical = _furniture.divisions.isNotEmpty && 
+                   _furniture.divisions.first.width == _furniture.width;
+
+  // Calcular separaciones
+  if (_furniture.divisions.isNotEmpty) {
+    if (isVertical) {
+      // Para muebles verticales (divisiones horizontales)
+      int numberOfSeparations = _furniture.divisions.length - 1;
+      totalArea18mm += numberOfSeparations * _furniture.width * _furniture.depth;
+    } else {
+      // Para muebles horizontales (divisiones verticales)
+      int numberOfSeparations = _furniture.divisions.length - 1;
+      totalArea18mm += numberOfSeparations * _furniture.height * _furniture.depth;
+    }
   }
 
   // Calcular componentes para cada área
@@ -74,8 +85,8 @@ Map<String, dynamic> calculateCosts(Config config) {
     // Estantes (18mm)
     totalArea18mm += area.shelves * (area.width * area.depth);
     
-    // Puertas (18mm)
-    if (area.doors > 0) {
+    // Puertas (18mm) - solo para muebles horizontales
+    if (!isVertical && area.doors > 0) {
       totalArea18mm += area.width * area.height;
       totalHinges += 2 * area.doors;
     }
@@ -110,7 +121,6 @@ Map<String, dynamic> calculateCosts(Config config) {
   double laborCost = materialsCost * (config.laborPercentage / 100);
   double totalCost = materialsCost + laborCost;
 
-  // Retorno explícito del mapa de resultados
   return {
     'totalArea18mm': totalArea18mm,
     'totalArea5mm': totalArea5mm,
@@ -129,4 +139,11 @@ Map<String, dynamic> calculateCosts(Config config) {
     'totalScrews': totalScrews,
   };
 }
+
+// ... (código existente)
+
+
+
+
+
 }
