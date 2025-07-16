@@ -40,64 +40,93 @@ class FurnitureProvider with ChangeNotifier {
     _furniture.divisions[index] = newDivision;
     notifyListeners();
   }
+void updateFurnitureWithDrawers(List<Map<String, dynamic>> drawerSpecs) {
+  _furniture = Furniture(
+    width: _furniture.width,
+    height: _furniture.height,
+    depth: _furniture.depth,
+    divisions: _furniture.divisions,
+    drawerSpecs: drawerSpecs,
+  );
+  notifyListeners();
+}
+Map<String, dynamic> calculateCosts(Config config) {
+  double totalArea18mm = 0;
+  double totalArea5mm = 0;
+  int totalHinges = 0;
+  int totalSliders = 0;
+  double totalEdgeLength = 0;
+  int totalScrews = 0;
 
-  Map<String, dynamic> calculateCosts(Config config) {
-    double totalArea18mm = 0;
-    double totalArea5mm = 0;
-    int totalHinges = 0;
-    int totalSliders = 0;
+  // Partes principales (18mm)
+  totalArea18mm += 2 * (_furniture.height * _furniture.depth); // Laterales
+  totalArea18mm += _furniture.width * _furniture.depth; // Piso
+  totalArea18mm += _furniture.width * _furniture.depth; // Techo
 
-    // Partes principales (18mm)
-    totalArea18mm += 2 * (_furniture.height * _furniture.depth); // Laterales
-    totalArea18mm += _furniture.width * _furniture.depth; // Piso
-    totalArea18mm += _furniture.width * _furniture.depth; // Techo
-
-    // Divisiones internas
-    for (Division division in _furniture.divisions) {
-      // Madera división vertical (18mm) - solo una por división
-      totalArea18mm += division.height * division.depth;
-      
-      // Estantes (18mm)
-      totalArea18mm += division.shelves * (division.width * division.depth);
-      
-      // Puertas (18mm) - solo si tiene puertas
-      if (division.doors > 0) {
-        totalArea18mm += division.width * division.height;
-        totalHinges += 2 * division.doors; // 2 bisagras por puerta
-      }
-      
-      // Cajones (5mm para fondo, 18mm para estructura)
-      for (Map<String, dynamic> drawer in division.drawerSpecs) {
-        double drawerHeight = drawer['height'];
-        totalArea18mm += 2 * (drawerHeight * division.depth); // Laterales del cajón
-        totalArea18mm += division.width * drawerHeight; // Frente del cajón
-        totalArea18mm += division.width * drawerHeight; // Trasera del cajón
-        totalArea5mm += division.width * division.depth; // Fondo del cajón
-        totalSliders += 1; // Una corredera por cajón
-      }
-    }
-
-    // Cálculo de costos
-    double boardCost18mm = (totalArea18mm / (config.boardWidth * config.boardHeight)) * config.boardPrice;
-    double boardCost5mm = (totalArea5mm / (config.boardWidth * config.boardHeight)) * (config.boardPrice * config.thinBoardFactor);
-    double hingesCost = totalHinges * config.hingePrice;
-    double slidersCost = totalSliders * config.sliderPrice;
-    double materialsCost = boardCost18mm + boardCost5mm + hingesCost + slidersCost;
-    double laborCost = materialsCost * (config.laborPercentage / 100);
-    double totalCost = materialsCost + laborCost;
-
-    return {
-      'totalArea18mm': totalArea18mm,
-      'totalArea5mm': totalArea5mm,
-      'boardCost18mm': boardCost18mm,
-      'boardCost5mm': boardCost5mm,
-      'hingesCost': hingesCost,
-      'slidersCost': slidersCost,
-      'materialsCost': materialsCost,
-      'laborCost': laborCost,
-      'totalCost': totalCost,
-      'totalHinges': totalHinges,
-      'totalSliders': totalSliders,
-    };
+  // Calcular separaciones (divisiones verticales)
+  if (_furniture.divisions.length > 1) {
+    int numberOfSeparations = _furniture.divisions.length - 1;
+    totalArea18mm += numberOfSeparations * _furniture.height * _furniture.depth;
   }
+
+  // Calcular componentes para cada área
+  for (Division area in _furniture.divisions) {
+    // Estantes (18mm)
+    totalArea18mm += area.shelves * (area.width * area.depth);
+    
+    // Puertas (18mm)
+    if (area.doors > 0) {
+      totalArea18mm += area.width * area.height;
+      totalHinges += 2 * area.doors;
+    }
+    
+    // Cajones
+    for (Map<String, dynamic> drawer in area.drawerSpecs) {
+      double drawerHeight = drawer['height'];
+      totalArea18mm += 2 * (drawerHeight * area.depth); // Laterales cajón
+      totalArea18mm += area.width * drawerHeight; // Frente cajón
+      totalArea18mm += area.width * drawerHeight; // Trasera cajón
+      totalArea5mm += area.width * area.depth; // Fondo cajón
+      totalSliders += 1;
+    }
+  }
+
+  // Cálculo de cantos (perímetro de todas las piezas visibles)
+  totalEdgeLength += 2 * (_furniture.width + _furniture.height) * 2; // Laterales
+  totalEdgeLength += 2 * (_furniture.width + _furniture.depth) * 2; // Piso y techo
+  
+  // Tornillos estimados (base + por área/división)
+  totalScrews = 50 + (_furniture.divisions.length * 20);
+
+  // Cálculo de costos
+  double boardCost18mm = (totalArea18mm / (config.boardWidth * config.boardHeight)) * config.boardPrice;
+  double boardCost5mm = (totalArea5mm / (config.boardWidth * config.boardHeight)) * (config.boardPrice * config.thinBoardFactor);
+  double hingesCost = totalHinges * config.hingePrice;
+  double slidersCost = totalSliders * config.sliderPrice;
+  double edgeCost = (totalEdgeLength / 100) * config.edgePrice;
+  double screwsCost = totalScrews * config.screwPrice;
+  
+  double materialsCost = boardCost18mm + boardCost5mm + hingesCost + slidersCost + edgeCost + screwsCost;
+  double laborCost = materialsCost * (config.laborPercentage / 100);
+  double totalCost = materialsCost + laborCost;
+
+  // Retorno explícito del mapa de resultados
+  return {
+    'totalArea18mm': totalArea18mm,
+    'totalArea5mm': totalArea5mm,
+    'boardCost18mm': boardCost18mm,
+    'boardCost5mm': boardCost5mm,
+    'hingesCost': hingesCost,
+    'slidersCost': slidersCost,
+    'edgeCost': edgeCost,
+    'screwsCost': screwsCost,
+    'materialsCost': materialsCost,
+    'laborCost': laborCost,
+    'totalCost': totalCost,
+    'totalHinges': totalHinges,
+    'totalSliders': totalSliders,
+    'totalEdgeLength': totalEdgeLength,
+    'totalScrews': totalScrews,
+  };
+}
 }

@@ -24,6 +24,19 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
   final List<Map<String, dynamic>> _areas = [];
 
   @override
+  void initState() {
+    super.initState();
+    // Inicializar con un área principal
+    _areas.add({
+      'width': widget.furnitureWidth,
+      'type': 'estante_sin_puerta',
+      'drawers': 0,
+      'shelves': 1,
+      'drawerSpecs': [],
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Configurar Áreas')),
@@ -44,6 +57,8 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
                         if (_areas.length > _divisionCount + 1) {
                           _areas.removeLast();
                         }
+                        // Redistribuir ancho entre las áreas restantes
+                        _distributeWidths();
                       });
                     }
                   },
@@ -57,15 +72,15 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
                       // Asegurar que tenemos suficientes áreas (divisiones + 1)
                       while (_areas.length < _divisionCount + 1) {
                         _areas.add({
-                          'width': _divisionCount == 0 
-                              ? widget.furnitureWidth 
-                              : widget.furnitureWidth / (_divisionCount + 1),
+                          'width': widget.furnitureWidth / (_divisionCount + 1),
                           'type': 'estante_sin_puerta',
                           'drawers': 0,
                           'shelves': 1,
                           'drawerSpecs': [],
                         });
                       }
+                      // Redistribuir ancho entre todas las áreas
+                      _distributeWidths();
                     });
                   },
                 ),
@@ -76,15 +91,6 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
               child: ListView.builder(
                 itemCount: _divisionCount + 1, // Mostrar todas las áreas (divisiones + 1)
                 itemBuilder: (context, index) {
-                  if (index >= _areas.length) {
-                    _areas.add({
-                      'width': widget.furnitureWidth / (_divisionCount + 1),
-                      'type': 'estante_sin_puerta',
-                      'drawers': 0,
-                      'shelves': 1,
-                      'drawerSpecs': [],
-                    });
-                  }
                   return _buildAreaCard(index, _areas[index]);
                 },
               ),
@@ -118,6 +124,7 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
               ),
               onChanged: (value) {
                 area['width'] = double.tryParse(value) ?? 0.0;
+                _adjustOtherWidths(index, area['width']);
               },
               controller: TextEditingController(text: area['width'].toStringAsFixed(2)),
             ),
@@ -219,45 +226,70 @@ class _DivisionSetupScreenState extends State<DivisionSetupScreen> {
     );
   }
 
-  void _saveAreas() {
-    final provider = Provider.of<FurnitureProvider>(context, listen: false);
-    
-    // Validar anchos
-    double totalWidth = 0;
+  void _distributeWidths() {
+    double remainingWidth = widget.furnitureWidth;
+    double equalWidth = remainingWidth / (_divisionCount + 1);
+
     for (var area in _areas) {
-      if (area['width'] <= 0) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ingrese un ancho válido para todas las áreas')),
-        );
-        return;
-      }
-      totalWidth += area['width'];
+      area['width'] = equalWidth;
     }
-
-    // Verificar que la suma de anchos coincida con el ancho del mueble
-    if ((totalWidth - widget.furnitureWidth).abs() > 0.1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('La suma de anchos (${totalWidth.toStringAsFixed(2)} cm) no coincide con el ancho del mueble (${widget.furnitureWidth} cm)')),
-      );
-      return;
-    }
-
-    final divisions = _areas.map((area) {
-      return Division(
-        name: 'Área',
-        width: area['width'],
-        height: widget.furnitureHeight,
-        depth: widget.furnitureDepth,
-        shelves: area['type'].contains('estante') ? (area['shelves'] ?? 1) : 0,
-        doors: area['type'] == 'estante_con_puerta' ? 1 : 0,
-        drawers: area['type'] == 'cajonera' ? (area['drawers'] ?? 0) : 0,
-        drawerSpecs: area['type'] == 'cajonera' 
-            ? List<Map<String, dynamic>>.from(area['drawerSpecs'] ?? []) 
-            : [],
-      );
-    }).toList();
-
-    provider.replaceDivisions(divisions);
-    Navigator.pop(context);
+    setState(() {});
   }
+
+  void _adjustOtherWidths(int changedIndex, double newWidth) {
+    double totalWidth = newWidth;
+    for (int i = 0; i < _areas.length; i++) {
+      if (i != changedIndex) {
+        totalWidth += _areas[i]['width'];
+      }
+    }
+
+    if (totalWidth > widget.furnitureWidth) {
+      // Ajustar proporcionalmente las otras áreas
+      double excess = totalWidth - widget.furnitureWidth;
+      double totalOtherWidth = totalWidth - newWidth;
+      double ratio = (totalOtherWidth - excess) / totalOtherWidth;
+
+      for (int i = 0; i < _areas.length; i++) {
+        if (i != changedIndex) {
+          _areas[i]['width'] *= ratio;
+          if (_areas[i]['width'] < 10) {
+            _areas[i]['width'] = 10; // Ancho mínimo
+          }
+        }
+      }
+    }
+    setState(() {});
+  }
+
+ void _saveAreas() {
+  final provider = Provider.of<FurnitureProvider>(context, listen: false);
+  
+  // Validación de anchos
+  double totalWidth = _areas.fold(0, (sum, area) => sum + (area['width'] ?? 0));
+  
+  if (_divisionCount > 0 && (totalWidth - widget.furnitureWidth).abs() > 0.1) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('La suma de anchos (${totalWidth.toStringAsFixed(2)} cm) no coincide con el ancho total (${widget.furnitureWidth} cm)')),
+    );
+    return;
+  }
+
+  // Crear divisiones
+  final divisions = _areas.map((area) => Division(
+    name: 'Área',
+    width: area['width'],
+    height: widget.furnitureHeight,
+    depth: widget.furnitureDepth,
+    shelves: area['type'].contains('estante') ? (area['shelves'] ?? 1) : 0,
+    doors: area['type'] == 'estante_con_puerta' ? 1 : 0,
+    drawers: area['type'] == 'cajonera' ? (area['drawers'] ?? 0) : 0,
+    drawerSpecs: area['type'] == 'cajonera' 
+        ? List<Map<String, dynamic>>.from(area['drawerSpecs'] ?? []) 
+        : [],
+  )).toList();
+
+  provider.replaceDivisions(divisions);
+  Navigator.pop(context);
+}
 }

@@ -112,28 +112,32 @@ class CalculatorScreen extends StatelessWidget {
   
 
   Widget _buildResultsCard(BuildContext context, Map<String, dynamic> results) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildResultRow('Área melamina 18mm:', '${results['totalArea18mm'].toStringAsFixed(2)} cm²'),
-            _buildResultRow('Área melamina 5mm:', '${results['totalArea5mm'].toStringAsFixed(2)} cm²'),
-            _buildResultRow('Costo melamina 18mm:', '\$${results['boardCost18mm'].toStringAsFixed(2)}'),
-            _buildResultRow('Costo melamina 5mm:', '\$${results['boardCost5mm'].toStringAsFixed(2)}'),
-            _buildResultRow('Bisagras (${results['totalHinges']}):', '\$${results['hingesCost'].toStringAsFixed(2)}'),
-            _buildResultRow('Correderas (${results['totalSliders']}):', '\$${results['slidersCost'].toStringAsFixed(2)}'),
-            _buildResultRow('Costo materiales:', '\$${results['materialsCost'].toStringAsFixed(2)}'),
-            _buildResultRow('Mano de obra (${Provider.of<ConfigProvider>(context).config.laborPercentage}%):', 
-                '\$${results['laborCost'].toStringAsFixed(2)}'),
-            const Divider(),
-            _buildResultRow('TOTAL FINAL:', '\$${results['totalCost'].toStringAsFixed(2)}', isTotal: true),
-          ],
-        ),
+  return Card(
+    child: Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Detalle de Costos:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 10),
+          _buildResultRow('Totoal Area 18mm:', '\$${results['totalArea18mm'].toStringAsFixed(2)}' ),
+          _buildResultRow('Melamina 18mm:', '\$${results['boardCost18mm'].toStringAsFixed(2)}'),
+          _buildResultRow('Melamina 5mm:', '\$${results['boardCost5mm'].toStringAsFixed(2)}'),
+          _buildResultRow('Tapa cantos (${results['totalEdgeLength'].toStringAsFixed(2)} cm):', '\$${results['edgeCost'].toStringAsFixed(2)}'),
+          _buildResultRow('Bisagras (${results['totalHinges']}):', '\$${results['hingesCost'].toStringAsFixed(2)}'),
+          _buildResultRow('Correderas (${results['totalSliders']}):', '\$${results['slidersCost'].toStringAsFixed(2)}'),
+          _buildResultRow('Tornillos (${results['totalScrews']}):', '\$${results['screwsCost'].toStringAsFixed(2)}'),
+          const Divider(),
+          _buildResultRow('Total materiales:', '\$${results['materialsCost'].toStringAsFixed(2)}'),
+          _buildResultRow('Mano de obra (${Provider.of<ConfigProvider>(context).config.laborPercentage}%):', 
+              '\$${results['laborCost'].toStringAsFixed(2)}'),
+          const Divider(),
+          _buildResultRow('TOTAL FINAL:', '\$${results['totalCost'].toStringAsFixed(2)}', isTotal: true),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildResultRow(String label, String value, {bool isTotal = false}) {
     return Padding(

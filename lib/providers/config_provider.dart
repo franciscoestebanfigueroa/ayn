@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import '../models/config_model.dart';
 
+
 class ConfigProvider with ChangeNotifier {
   Config _config = Config(
     boardWidth: 250,
     boardHeight: 180,
     boardPrice: 150.0,
+    edgePrice: 5.0,
     hingePrice: 2.5,
     sliderPrice: 8.0,
+    screwPrice: 0.1,
     laborPercentage: 30.0,
   );
 

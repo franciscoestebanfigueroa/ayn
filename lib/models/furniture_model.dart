@@ -3,13 +3,16 @@ class Furniture {
   double height;
   double depth;
   List<Division> divisions;
+  List<Map<String, dynamic>> drawerSpecs; // Para cajones en mueble sin divisiones
   
   Furniture({
     required this.width,
     required this.height,
     required this.depth,
     List<Division> divisions = const [],
-  }) : divisions = List.from(divisions)..removeWhere((div) => div.width <= 0); 
+    List<Map<String, dynamic>> drawerSpecs = const [],
+  }) : divisions = List.from(divisions)..removeWhere((div) => div.width <= 0),
+       drawerSpecs = List.from(drawerSpecs);
 }
 class Division {
   String name;
