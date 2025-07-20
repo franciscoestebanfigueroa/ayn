@@ -21,11 +21,14 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: 'Calculadora de Melamina',
+        debugShowCheckedModeBanner: false,
         theme: ThemeData(
-          primarySwatch: Colors.blue,
+          // Activando Material 3 para un look más moderno
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightBlue),
+          useMaterial3: true,
           visualDensity: VisualDensity.adaptivePlatformDensity,
         ),
-        home: const HomeScreen(), // Nueva pantalla de inicio
+        home:HomeScreen(), // Nueva pantalla de inicio
         routes: {
           ConfigScreen.routeName: (ctx) =>  ConfigScreen(),
           '/vertical': (ctx) =>  VerticalFurnitureScreen(),
@@ -42,21 +45,49 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Calculadora de Muebles')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, '/horizontal'),
-              child: const Text('Mueble Horizontal'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () => Navigator.pushNamed(context, '/vertical'),
-              child: const Text('Mueble Vertical'),
-            ),
-          ],
+      appBar: AppBar(
+        title: const Text('A & N Muebles'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.pushNamed(context, '/config'),
+          ),
+        ],
+        centerTitle: true,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Image.asset(
+                'assets/logoicon.jpg',
+                height: 150, // Ajusta la altura según necesites
+              ),
+              const SizedBox(height: 40),
+              const Text(
+                'Seleccione el tipo de mueble a presupuestar:',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 18),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.width_wide),
+                onPressed: () => Navigator.pushNamed(context, '/horizontal'),
+                label: const Text('Mueble Horizontal (Ej: Escritorio)'),
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.height),
+                onPressed: () => Navigator.pushNamed(context, '/vertical'),
+                label: const Text('Mueble Vertical (Ej: Ropero)'),
+                style: ElevatedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16)),
+              ),
+            ],
+          ),
         ),
       ),
     );

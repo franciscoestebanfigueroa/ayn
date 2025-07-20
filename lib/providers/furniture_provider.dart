@@ -98,7 +98,7 @@ void updateFurnitureWithDrawers(List<Map<String, dynamic>> drawerSpecs) {
       totalArea18mm += area.width * drawerHeight; // Frente cajón
       totalArea18mm += area.width * drawerHeight; // Trasera cajón
       totalArea5mm += area.width * area.depth; // Fondo cajón
-      totalSliders += 1;
+      totalSliders += 2;
     }
   }
 
